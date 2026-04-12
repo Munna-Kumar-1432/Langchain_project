@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosine Similarity Explainer — by Munna Kumar</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --card-bg: rgba(255, 255, 255, 0.05);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding: 40px 20px; line-height: 1.7; overflow-x: hidden; }
+
+.container { max-width: 900px; margin: 0 auto; }
+.header { text-align: center; margin-bottom: 40px; }
+.header h1 { font-size: 40px; font-weight: 700; background: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+.header p { font-size: 16px; color: var(--text-muted); }
+
+.glass-card {
+  background: var(--card-bg); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--card-border); border-radius: 20px; padding: 35px;
+  box-shadow: var(--glass-shadow); margin-bottom: 24px;
+}
+
+.step-nav { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+.step-pill {
+  padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600;
+  background: rgba(255, 255, 255, 0.05); cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease; color: var(--text-muted);
+}
+.step-pill:hover { background: rgba(255, 255, 255, 0.15); }
+.step-pill.active { background: var(--primary); color: white; border-color: var(--primary-hover); box-shadow: 0 0 15px rgba(139, 92, 246, 0.5); }
+
+.def-block { margin-bottom: 24px; display: flex; gap: 24px; align-items: flex-start; }
+.def-image { width: 140px; height: 140px; border-radius: 16px; object-fit: cover; box-shadow: 0 4px 20px rgba(0,0,0,0.3); flex-shrink: 0; }
+.intro-image { width: 100%; height: 200px; border-radius: 16px; object-fit: cover; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.hero-image { width: 100%; height: 280px; border-radius: 16px; object-fit: cover; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.def-text h2 { font-size: 24px; margin-bottom: 15px; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+.def-text p { font-size: 15px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px; }
+.highlight-box { background: rgba(139, 92, 246, 0.15); border-left: 4px solid var(--primary); padding: 12px 20px; margin-top: 15px; border-radius: 4px; font-size: 14.5px; }
+
+.word-btn, .action-btn {
+  padding: 8px 16px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; margin-right: 8px; margin-bottom: 8px;
+}
+.word-btn:hover, .action-btn:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+.action-btn.primary { background: var(--primary); }
+.action-btn.primary:hover { background: var(--primary-hover); }
+.action-btn.success { background: #10b981; }
+.action-btn.success:hover { background: #059669; }
+
+.svg-container { background: rgba(0,0,0,0.3); border-radius: 16px; margin: 20px 0; border: 1px solid rgba(255,255,255,0.05); width: 100%; transition: all 0.3s ease; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+.step-content { display: none; animation: fadeIn 0.4s ease-out; }
+.step-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; margin-top: -6px; }
+input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 3px; }
+
+.f-box { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; font-family: monospace; font-size: 15px; margin-top: 20px; line-height: 2; }
+.f-box strong { color: #a78bfa; }
+.big-num { font-size: 32px; font-weight: 700; color: #fff; text-align: center; margin-top: 10px; }
+.stat-card { text-align: center; }
+.stat-card p { color: var(--text-muted); font-size: 14px; }
+.tag { font-size: 12px; padding: 4px 10px; border-radius: 12px; margin-left: 10px; }
+.tag-teal { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
+.doc-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin-bottom: 12px; transition: transform 0.2s; }
+.doc-row:hover { transform: scale(1.02); background: rgba(255,255,255,0.06); }
+.rank-fill { height: 6px; border-radius: 3px; background: var(--primary); transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); margin-top: 10px; }
+.doc-row-top { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+.bottom-nav { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--card-border); }
+
+/* Footer Styling */
+.footer {
+  margin-top: 40px;
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.footer strong { color: #fff; font-weight: 600; letter-spacing: 0.5px;}
+.footer a { color: #f472b6; text-decoration: none; transition: color 0.2s; }
+.footer a:hover { color: #a78bfa; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Vector Databases & Similarity Explainer</h1>
+    <p>A beautifully visual 6-step deep dive into embeddings and search architecture.</p>
+  </div>
+
+  <div class="step-nav" id="pills">
+    <button class="step-pill active" onclick="goTo(0)">1. The AI Brain</button>
+    <button class="step-pill" onclick="goTo(1)">2. Doc to Vector</button>
+    <button class="step-pill" onclick="goTo(2)">3. Space & Direction</button>
+    <button class="step-pill" onclick="goTo(3)">4. Mathematics</button>
+    <button class="step-pill" onclick="goTo(4)">5. RAG Engine</button>
+    <button class="step-pill" onclick="goTo(5)">6. Conclusion</button>
+  </div>
+
+  <!-- STEP 0 -->
+  <div id="step0" class="step-content active">
+    <div class="glass-card">
+      <img src="assets/neural_network_brain_1775999493759.png" class="hero-image" alt="Neural Network Brain">
+      <div class="def-text">
+        <h2>1. The AI Brain: Understanding Semantic Databases</h2>
+        <p>Before we can calculate similarity, we have to understand how AI "thinks" about language. Traditional relational databases (like SQL) use exact keyword matching. For example, if you search "Apple", it simply looks for the letters A-P-P-L-E. It does not know if you mean the fruit or the iPhone company.</p>
+        <p>Modern AI neural networks operate profoundly differently—they map concepts into a giant mathematical space called a <strong>Vector Database</strong>. Imagine a galaxy where every star is a piece of data.</p>
+        <div class="highlight-box">
+          <strong>Deep Dive:</strong> Instead of simple 3D space (X, Y, Z coordinates), models like OpenAI's use <strong>over 1,536 dimensions</strong>. One dimension might measure "Fluffiness", another might measure "Royalty", and another "Programming Context". By evaluating words across all these thousands of contexts simultaneously, the AI mathematically maps out semantic meaning!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="step1" class="step-content">
+    <div class="glass-card">
+      <div class="grid-2" style="margin-bottom: 20px;">
+        <img src="assets/document_processing_1775999514119.png" style="width:100%; border-radius:12px; object-fit:cover; height: 180px;" alt="Doc Processing">
+        <img src="assets/words_to_vectors_1775998850751.png" style="width:100%; border-radius:12px; object-fit:cover; height: 180px;" alt="Words to Vectors">
+      </div>
+      <div class="def-text">
+        <h2>2. Translating Documents to Vectors (Embeddings)</h2>
+        <p>The process of converting a word, sentence, or entire document into a vector is called an <strong>Embedding</strong>. A machine learning embedding model reads your documents, token by token, and converts the context into a floating-point number array.</p>
+        <p>Because the meaning dictates the numbers, synonyms like "car" and "automobile" will generate numbers that are nearly identical. This allows the computer to literally "calculate" the difference between concepts.</p>
+      </div>
+      <p style="color:var(--text-muted); font-size:14px; margin-top: 15px; margin-bottom: 12px;">Interactive Visualization: Click any word below to plot its vector coordinate in our simplified 2D meaning space.</p>
+      <div>
+        <button class="word-btn" style="border-left: 3px solid #2dd4bf" onclick="selectWord('king',0.85,0.80)">king</button>
+        <button class="word-btn" style="border-left: 3px solid #2dd4bf" onclick="selectWord('queen',0.82,0.88)">queen</button>
+        <button class="word-btn" style="border-left: 3px solid #fbbf24" onclick="selectWord('man',0.75,0.55)">man</button>
+        <button class="word-btn" style="border-left: 3px solid #fbbf24" onclick="selectWord('woman',0.72,0.62)">woman</button>
+        <button class="word-btn" style="border-left: 3px solid #c084fc" onclick="selectWord('dog',0.30,0.78)">dog</button>
+        <button class="word-btn" style="border-left: 3px solid #c084fc" onclick="selectWord('cat',0.28,0.85)">cat</button>
+      </div>
+
+      <div class="svg-container">
+        <svg width="100%" viewBox="0 0 680 300">
+          <defs>
+            <marker id="ax" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+            </marker>
+          </defs>
+          <line x1="60" y1="260" x2="620" y2="260" stroke="rgba(255,255,255,0.2)" stroke-width="1" marker-end="url(#ax)"/>
+          <line x1="60" y1="260" x2="60" y2="30" stroke="rgba(255,255,255,0.2)" stroke-width="1" marker-end="url(#ax)"/>
+          
+          <circle cx="518" cy="98" r="8" fill="#2dd4bf"/> <text x="532" y="103" font-size="12" fill="#e2e8f0">king</text>
+          <circle cx="500" cy="118" r="8" fill="#2dd4bf"/> <text x="514" y="123" font-size="12" fill="#e2e8f0">queen</text>
+          <circle cx="448" cy="192" r="8" fill="#fbbf24"/> <text x="460" y="196" font-size="12" fill="#e2e8f0">man</text>
+          <circle cx="432" cy="208" r="8" fill="#fbbf24"/> <text x="444" y="212" font-size="12" fill="#e2e8f0">woman</text>
+          <circle cx="168" cy="106" r="8" fill="#c084fc"/> <text x="180" y="110" font-size="12" fill="#e2e8f0">dog</text>
+          <circle cx="150" cy="88" r="8" fill="#c084fc"/> <text x="162" y="92" font-size="12" fill="#e2e8f0">cat</text>
+          <circle id="sel-dot" cx="-100" cy="-100" r="14" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 2"/>
+        </svg>
+      </div>
+      <div id="word-info" style="display:none; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+        <h3 id="word-name" style="color: #fff; margin-bottom: 5px;"></h3>
+        <p id="word-vec" style="font-family: monospace; color: #a78bfa; font-size: 14px; letter-spacing: 0.5px;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="step-content">
+    <div class="glass-card">
+      <div class="def-block">
+        <img src="assets/magnitude_length_1775999530657.png" class="def-image" alt="Magnitudes">
+        <div class="def-text">
+          <h2>3. Magnitude vs. Direction</h2>
+          <p>Any vector in space possesses two core properties: <strong>Magnitude</strong> (its total length) and <strong>Direction</strong> (the angle at which it points).</p>
+          <p>Think about a huge 5,000-word Wikipedia article about Golden Retrievers versus a tiny 5-word tweet saying "Golden Retrievers are good boys." Because the article has orders of magnitude more words, its embedding vector will be extremely long (large magnitude), while the tweet's vector is very short. However! Because they are communicating the exact same topic, they will physically <strong>point in the same direction</strong>.</p>
+          <div class="highlight-box">
+            This is why vector search uses angles instead of simple distance! By measuring the angle (θ) between two vectors, we isolate "semantic similarity" and completely ignore "length."
+          </div>
+        </div>
+      </div>
+      <div style="margin-bottom:20px; margin-top: 15px;">
+        <button class="action-btn" onclick="setScenario('similar')">Test 1: Similar (King & Queen)</button>
+        <button class="action-btn" onclick="setScenario('unrelated')">Test 2: Unrelated (King & Pasta)</button>
+        <button class="action-btn" onclick="setScenario('opposite')">Test 3: Opposite (Hot & Cold)</button>
+      </div>
+      <div class="svg-container">
+        <svg width="100%" viewBox="0 0 680 340">
+          <defs>
+            <marker id="va" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </marker>
+          </defs>
+          <line x1="60" y1="280" x2="450" y2="280" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <line x1="240" y1="310" x2="240" y2="40" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+          <circle cx="240" cy="280" r="4" fill="#fff"/>
+          
+          <line id="v-query" x1="240" y1="280" x2="390" y2="120" stroke="#f472b6" stroke-width="3" marker-end="url(#va)" style="color:#f472b6"/>
+          <line id="v-doc" x1="240" y1="280" x2="376" y2="100" stroke="#2dd4bf" stroke-width="3" marker-end="url(#va)" style="color:#2dd4bf"/>
+          <path id="v-arc" d="M 300 280 A 60 60 0 0 0 295 224" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+          <text id="v-angle" font-size="14" x="320" y="248" fill="#fff">θ = 15°</text>
+          
+          <rect x="470" y="120" width="180" height="100" rx="12" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.1)"/>
+          <text font-size="13" x="560" y="148" text-anchor="middle" fill="#94a3b8">Cosine Similarity Formula</text>
+          <text id="sim-score" font-size="36" font-weight="700" x="560" y="190" text-anchor="middle" fill="#a78bfa">0.97</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" class="step-content">
+    <div class="glass-card">
+      <div class="def-block">
+        <img src="assets/cosine_similarity_1775998887708.png" class="def-image" alt="Mathematics">
+        <div class="def-text">
+          <h2>4. The Mathematics Explored</h2>
+          <p>Cos(θ) calculates the cosine of the angle between two vectors. It is mathematically defined as the <strong>dot product</strong> divided by the product of their <strong>magnitudes</strong>. The resulting score operates cleanly on a scale between 1 and -1.</p>
+          <ul style="margin-left: 20px; color: var(--text-muted); margin-bottom: 15px;">
+            <li><strong style="color:#fff;">1</strong> = Perfectly identical direction (0° angle).</li>
+            <li><strong style="color:#fff;">0</strong> = Completely orthogonal and unrelated (90° angle).</li>
+            <li><strong style="color:#fff;">-1</strong> = Absolutely opposite meaning (180° angle).</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="grid-2">
+        <div style="background:rgba(244, 114, 182, 0.1); padding:20px; border-radius:12px; border:1px solid rgba(244,114,182,0.3)">
+          <h3 style="color:#f472b6; margin-bottom:15px;">Vector A (e.g. Query)</h3>
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+            <span>X:</span> <input type="range" min="-10" max="10" value="8" id="a1" step="0.5" oninput="calcSim()"> <span id="a1v" style="font-family:monospace;width:30px">8</span>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span>Y:</span> <input type="range" min="-10" max="10" value="6" id="a2" step="0.5" oninput="calcSim()"> <span id="a2v" style="font-family:monospace;width:30px">6</span>
+          </div>
+        </div>
+        <div style="background:rgba(45, 212, 191, 0.1); padding:20px; border-radius:12px; border:1px solid rgba(45,212,191,0.3)">
+          <h3 style="color:#2dd4bf; margin-bottom:15px;">Vector B (e.g. Document)</h3>
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+            <span>X:</span> <input type="range" min="-10" max="10" value="7" id="b1" step="0.5" oninput="calcSim()"> <span id="b1v" style="font-family:monospace;width:30px">7</span>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span>Y:</span> <input type="range" min="-10" max="10" value="9" id="b2" step="0.5" oninput="calcSim()"> <span id="b2v" style="font-family:monospace;width:30px">9</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="f-box">
+        <div id="f-dot">A · B = (8×7) + (6×9) = <strong>110</strong></div>
+        <div id="f-maga">‖A‖ = √(8²+6²) = <strong>10.00</strong></div>
+        <div id="f-magb">‖B‖ = √(7²+9²) = <strong>11.40</strong></div>
+        <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin:10px 0;">
+        <div id="f-res">Cos(θ) = 110 / (10.00 × 11.40) = <strong style="color:#a78bfa; font-size:18px;">0.96</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="step4" class="step-content">
+    <div class="glass-card">
+      <div class="grid-2" style="margin-bottom: 20px;">
+        <img src="assets/rag_architecture_1775999548503.png" style="width:100%; border-radius:12px; object-fit:cover; height: 200px;" alt="RAG Flowchart">
+        <img src="assets/search_ranking_1775998906488.png" style="width:100%; border-radius:12px; object-fit:cover; height: 200px;" alt="Search UI">
+      </div>
+      <div class="def-text">
+        <h2>5. Retrieval-Augmented Generation (RAG) Architecture</h2>
+        <p>This mathematics drives the biggest AI boom of our generation: <strong>RAG</strong>. Here is the step-by-step pipeline:</p>
+        <ol style="margin-left: 20px; color: var(--text-muted); margin-bottom: 20px;">
+          <li style="margin-bottom: 5px;">A user types a question into a chat interface.</li>
+          <li style="margin-bottom: 5px;">The app runs the question through an Embedding Model to generate a "Query Vector".</li>
+          <li style="margin-bottom: 5px;">The <strong>Vector Database</strong> executes a massive, parallel Cosine Similarity sweep against millions of document vectors.</li>
+          <li style="margin-bottom: 5px;">It extracts the Top 5 highest-correlation documents.</li>
+          <li>It feeds these 5 documents to an LLM (like GPT-4) as fresh context, so the AI can answer accurately without hallucinating!</li>
+        </ol>
+      </div>
+      
+      <div style="margin-top: 20px; margin-bottom: 20px;">
+        <p style="color:var(--text-main); font-weight: 500; font-size: 15px; margin-bottom: 10px;">Select a simulated user query to trigger the RAG Search Engine:</p>
+        <button class="action-btn primary" onclick="setQuery('machine learning')">"Tell me about Machine Learning"</button>
+        <button class="action-btn" onclick="setQuery('cooking recipes')">"Best Cooking Recipes"</button>
+        <button class="action-btn" onclick="setQuery('space exploration')">"Recent Space Exploration"</button>
+      </div>
+
+      <div style="background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; margin-bottom:20px;">
+        <span style="color:var(--text-muted); font-size:13px; text-transform:uppercase; letter-spacing:1px;">Generated Search Vector:</span><br>
+        <span id="q-embed" style="font-family:monospace; font-size:15px; color:#a78bfa;"></span>
+      </div>
+
+      <div id="doc-list"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div id="step5" class="step-content">
+    <div class="glass-card" style="text-align: center; padding: 50px 20px;">
+      <img src="assets/success_celebration_1775999565991.png" style="width:200px; height:200px; border-radius:20px; object-fit:cover; box-shadow:0 10px 30px rgba(0,0,0,0.5); margin: 0 auto 30px;" alt="Success">
+      <h2 style="font-size: 32px; color: #fff; margin-bottom: 15px;">Curriculum Complete!</h2>
+      <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 30px; font-size: 16px;">
+        Congratulations! You have successfully mastered Semantic Vector Spaces, Text Embeddings, Magnitudes, Angles, Dot Products, and the complex Retrieval-Augmented Generation architectures utilized in modern Large Language Models and Vector Databases.
+      </p>
+      <button class="action-btn success" onclick="goTo(0)" style="font-size: 16px; padding: 12px 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">Restart Interactive Explainer</button>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="action-btn" id="btn-prev" onclick="navigate(-1)" style="visibility:hidden; background: rgba(255,255,255,0.05);">&larr; Previous Step</button>
+    <div style="color:var(--text-muted); font-size:14px; margin-top:8px; font-weight: 500;" id="step-counter">Step 1 of 6</div>
+    <button class="action-btn primary" id="btn-next" onclick="navigate(1)" style="box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">Next Step &rarr;</button>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="glass-card" style="padding: 20px; text-align: center; margin-bottom: 0;">
+      <p style="margin-bottom: 5px;">Created and Designed by <strong>Munna Kumar</strong></p>
+      <p>Contact me at: <a href="mailto:codewithmunna513@gmail.com">codewithmunna513@gmail.com</a></p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+let cur = 0;
+const total = 6;
+
+const dotPos = {
+  king:{cx:518,cy:98}, queen:{cx:500,cy:118}, man:{cx:448,cy:192}, woman:{cx:432,cy:208},
+  dog:{cx:168,cy:106}, cat:{cx:150,cy:88}
+};
+
+function selectWord(w, x, y) {
+  const info = document.getElementById('word-info');
+  info.style.display = 'block';
+  document.getElementById('word-name').textContent = w.toUpperCase();
+  // Using fixed synthetic high-dimensional array representation
+  document.getElementById('word-vec').textContent = `[${x.toFixed(4)}, ${y.toFixed(4)}, -0.1039, 0.4481, 0.8872, -0.9912 ... 1530 more dimensions]`;
+  const p = dotPos[w];
+  const d = document.getElementById('sel-dot');
+  d.setAttribute('cx', p.cx); d.setAttribute('cy', p.cy);
+}
+
+const scenarios = {
+  similar:   { a:[150,130], b:[148,118], score:0.97 },
+  unrelated: { a:[150,130], b:[60,200],  score:0.31 },
+  opposite:  { a:[150,130], b:[-140,-120],score:-0.97 },
+};
+
+function setScenario(s) {
+  const sc = scenarios[s];
+  const ox=240, oy=280, scale=1.2;
+  const qx = ox+sc.a[0]*scale, qy = oy-sc.a[1]*scale;
+  const dx = ox+sc.b[0]*scale, dy = oy-sc.b[1]*scale;
+  document.getElementById('v-query').setAttribute('x2',qx); document.getElementById('v-query').setAttribute('y2',qy);
+  document.getElementById('v-doc').setAttribute('x2',dx);   document.getElementById('v-doc').setAttribute('y2',dy);
+  const angle = Math.round(Math.acos(Math.max(-1,Math.min(1,sc.score)))*180/Math.PI);
+  document.getElementById('v-angle').textContent = 'θ = '+angle+'°';
+  document.getElementById('sim-score').textContent = sc.score.toFixed(2);
+  let col = sc.score > 0.6 ? '#a78bfa' : sc.score > 0 ? '#fbbf24' : '#f87171';
+  document.getElementById('sim-score').style.fill = col;
+}
+
+function calcSim() {
+  const a1=+document.getElementById('a1').value, a2=+document.getElementById('a2').value;
+  const b1=+document.getElementById('b1').value, b2=+document.getElementById('b2').value;
+  ['a1','a2','b1','b2'].forEach(id => { document.getElementById(id+'v').textContent = document.getElementById(id).value; });
+  const dot = a1*b1+a2*b2;
+  const mA  = Math.sqrt(a1*a1+a2*a2);
+  const mB  = Math.sqrt(b1*b1+b2*b2);
+  const cos = (mA===0||mB===0)?0:dot/(mA*mB);
+  const ang = Math.round(Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI);
+  document.getElementById('f-dot').innerHTML = `A · B = (${a1}×${b1}) + (${a2}×${b2}) = <strong>${dot}</strong>`;
+  document.getElementById('f-maga').innerHTML = `‖A‖ = √(${a1}²+${a2}²) = <strong>${mA.toFixed(2)}</strong>`;
+  document.getElementById('f-magb').innerHTML = `‖B‖ = √(${b1}²+${b2}²) = <strong>${mB.toFixed(2)}</strong>`;
+  document.getElementById('f-res').innerHTML = `Cos(θ) = ${dot} / (${mA.toFixed(2)} × ${mB.toFixed(2)}) = <strong style="color:#a78bfa; font-size:18px;">${cos.toFixed(2)}</strong>`;
+}
+
+const docs = {
+  'machine learning':   [ {title:'Deep Learning Fundamentals', embed:[0.9,0.8,0.1,0.0]}, {title:'Python Data Structures', embed:[0.6,0.5,0.2,0.1]}, {title:'Baking 101', embed:[0.1,0.0,0.9,0.8]}, {title:'Mars Rover Update', embed:[0.1,0.1,0.1,0.9]} ],
+  'cooking recipes':    [ {title:'Baking 101', embed:[0.1,0.0,0.9,0.8]}, {title:'Italian Pasta Tricks', embed:[0.1,0.1,0.85,0.8]}, {title:'Deep Learning Fundamentals', embed:[0.9,0.8,0.1,0.0]} ],
+  'space exploration':  [ {title:'Mars Rover Update', embed:[0.1,0.1,0.1,0.9]}, {title:'James Webb Discoveries', embed:[0.0,0.1,0.1,0.85]}, {title:'Python Data Structures', embed:[0.6,0.5,0.2,0.1]} ],
+};
+const queryEmbeds = {
+  'machine learning':   [0.95,0.85,0.05,0.05],
+  'cooking recipes':    [0.05,0.05,0.95,0.90],
+  'space exploration':  [0.05,0.05,0.05,0.95],
+};
+function cosineSim(a,b){ let d=0,ma=0,mb=0; for(let i=0;i<4;i++){d+=a[i]*b[i];ma+=a[i]*a[i];mb+=b[i]*b[i];} return d/(Math.sqrt(ma)*Math.sqrt(mb)); }
+
+function setQuery(q) {
+  const qe = queryEmbeds[q];
+  document.getElementById('q-embed').textContent = '['+qe.map(x=>x.toFixed(4)).join(', ')+']';
+  const list = docs[q].map(d=>({...d,score:cosineSim(qe,d.embed)})).sort((a,b)=>b.score-a.score);
+  let html = '';
+  list.forEach((d,i) => {
+    const pct = Math.max(0, Math.round(d.score*100));
+    const tag = i===0?'<span class="tag tag-teal">Highest Cosine Match</span>':'';
+    const col = d.score>0.8?'#8b5cf6':d.score>0.5?'#3b82f6':'#64748b';
+    html += `<div class="doc-row">
+      <div class="doc-row-top"><span>${d.title}${tag}</span><span style="color:${col}; font-family:monospace; font-size:16px;">${d.score.toFixed(3)} Cos</span></div>
+      <div class="rank-fill" style="width:${pct}%;background:${col}"></div>
+    </div>`;
+  });
+  document.getElementById('doc-list').innerHTML = html;
+  
+  document.querySelectorAll('#step4 .action-btn').forEach(b => {
+    b.classList.remove('primary');
+    if(b.textContent.toLowerCase().includes(q.split(' ')[0])) b.classList.add('primary');
+  });
+}
+
+function goTo(n) {
+  document.querySelectorAll('.step-content').forEach((p,i)=>p.classList.toggle('active',i===n));
+  cur=n;
+  document.querySelectorAll('.step-pill').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.getElementById('btn-prev').style.visibility = n>0?'visible':'hidden';
+  
+  if (n === total-1) {
+    document.getElementById('btn-next').style.display = 'none';
+  } else {
+    document.getElementById('btn-next').style.display = 'inline-block';
+    document.getElementById('btn-next').textContent = 'Next Step \u2192';
+  }
+  
+  document.getElementById('step-counter').textContent = `Step ${n+1} of ${total}`;
+  if(n===4) setQuery('machine learning');
+  if(n===3) calcSim();
+}
+
+function navigate(dir) { if(cur+dir>=0&&cur+dir<total) goTo(cur+dir); }
+
+setScenario('similar');
+</script>
+</body>
+</html>
